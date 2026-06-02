@@ -19,7 +19,17 @@ ament_target_dependencies(xbox_input_node
   dog_msgs
 )
 
-install(TARGETS xbox_input_node
+add_executable(keyboard_input_node
+  src/keyboard_input_node.cpp
+)
+ament_target_dependencies(keyboard_input_node
+  rclcpp
+  dog_msgs
+)
+
+install(TARGETS
+  xbox_input_node
+  keyboard_input_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

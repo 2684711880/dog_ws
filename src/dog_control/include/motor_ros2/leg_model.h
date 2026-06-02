@@ -86,10 +86,10 @@ constexpr std::array<const char *, kJointCount> kJointNames = {
 };
 
 constexpr std::array<float, kJointCount> kJointSigns = {
+  -1.0f,  1.0f, -1.0f,
+  -1.0f, -1.0f,  1.0f,
   1.0f,  1.0f, -1.0f,
-  1.0f, -1.0f,  1.0f,
- -1.0f,  1.0f, -1.0f,
- -1.0f, -1.0f,  1.0f
+  1.0f, -1.0f,  1.0f
 };
 // J1 前后腿安装方向是镜像的：后腿 J1 需要反号，才能与前腿共享同一套关节命令口径。
 // 这里的符号会同时作用于下发和反馈，因此要始终作为唯一真源维护。

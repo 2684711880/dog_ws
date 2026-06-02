@@ -847,4 +847,132 @@
       effort="50"
       velocity="5" />
   </joint>
+
+  <!-- ========== Gazebo 仿真扩展 ========== -->
+
+  <!-- 材质定义 -->
+  <gazebo reference="base_link">
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+  <gazebo reference="Radar_Link">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+  <gazebo reference="Camera_Link">
+    <material>Gazebo/White</material>
+  </gazebo>
+  <gazebo reference="LF_Link_1"><material>Gazebo/Grey</material></gazebo>
+  <gazebo reference="LF_Link_2"><material>Gazebo/LightGrey</material></gazebo>
+  <gazebo reference="LF_Link_3"><material>Gazebo/White</material></gazebo>
+  <gazebo reference="RF_Link_1"><material>Gazebo/Grey</material></gazebo>
+  <gazebo reference="RF_Link_2"><material>Gazebo/LightGrey</material></gazebo>
+  <gazebo reference="RF_Link_3"><material>Gazebo/White</material></gazebo>
+  <gazebo reference="LB_Link_1"><material>Gazebo/Grey</material></gazebo>
+  <gazebo reference="LB_Link_2"><material>Gazebo/LightGrey</material></gazebo>
+  <gazebo reference="LB_Link_3"><material>Gazebo/White</material></gazebo>
+  <gazebo reference="RB_Link_1"><material>Gazebo/Grey</material></gazebo>
+  <gazebo reference="RB_Link_2"><material>Gazebo/LightGrey</material></gazebo>
+  <gazebo reference="RB_Link_3"><material>Gazebo/White</material></gazebo>
+
+  <!-- 关节阻尼（防止仿真抖动） -->
+  <gazebo reference="LF_Joint_1"><dynamics damping="0.5" friction="0.01"/></gazebo>
+  <gazebo reference="LF_Joint_2"><dynamics damping="0.5" friction="0.01"/></gazebo>
+  <gazebo reference="LF_Joint_3"><dynamics damping="0.5" friction="0.01"/></gazebo>
+  <gazebo reference="RF_Joint_1"><dynamics damping="0.5" friction="0.01"/></gazebo>
+  <gazebo reference="RF_Joint_2"><dynamics damping="0.5" friction="0.01"/></gazebo>
+  <gazebo reference="RF_Joint_3"><dynamics damping="0.5" friction="0.01"/></gazebo>
+  <gazebo reference="LB_Joint_1"><dynamics damping="0.5" friction="0.01"/></gazebo>
+  <gazebo reference="LB_Joint_2"><dynamics damping="0.5" friction="0.01"/></gazebo>
+  <gazebo reference="LB_Joint_3"><dynamics damping="0.5" friction="0.01"/></gazebo>
+  <gazebo reference="RB_Joint_1"><dynamics damping="0.5" friction="0.01"/></gazebo>
+  <gazebo reference="RB_Joint_2"><dynamics damping="0.5" friction="0.01"/></gazebo>
+  <gazebo reference="RB_Joint_3"><dynamics damping="0.5" friction="0.01"/></gazebo>
+
+  <!-- 足端摩擦力 -->
+  <gazebo reference="LF_Link_3">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <kp>100000</kp>
+    <kd>100</kd>
+  </gazebo>
+  <gazebo reference="RF_Link_3">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <kp>100000</kp>
+    <kd>100</kd>
+  </gazebo>
+  <gazebo reference="LB_Link_3">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <kp>100000</kp>
+    <kd>100</kd>
+  </gazebo>
+  <gazebo reference="RB_Link_3">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <kp>100000</kp>
+    <kd>100</kd>
+  </gazebo>
+
+  <!-- ros2_control 硬件接口 -->
+  <ros2_control name="GazeboSystem" type="system">
+    <hardware>
+      <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+    </hardware>
+    <joint name="LF_Joint_1">
+      <command_interface name="position"><param name="min">-1.2</param><param name="max">1.2</param></command_interface>
+      <state_interface name="position"/><state_interface name="velocity"/>
+    </joint>
+    <joint name="LF_Joint_2">
+      <command_interface name="position"><param name="min">-1.2</param><param name="max">1.2</param></command_interface>
+      <state_interface name="position"/><state_interface name="velocity"/>
+    </joint>
+    <joint name="LF_Joint_3">
+      <command_interface name="position"><param name="min">-0.6</param><param name="max">2.4</param></command_interface>
+      <state_interface name="position"/><state_interface name="velocity"/>
+    </joint>
+    <joint name="RF_Joint_1">
+      <command_interface name="position"><param name="min">-1.2</param><param name="max">1.2</param></command_interface>
+      <state_interface name="position"/><state_interface name="velocity"/>
+    </joint>
+    <joint name="RF_Joint_2">
+      <command_interface name="position"><param name="min">-1.2</param><param name="max">1.2</param></command_interface>
+      <state_interface name="position"/><state_interface name="velocity"/>
+    </joint>
+    <joint name="RF_Joint_3">
+      <command_interface name="position"><param name="min">-0.6</param><param name="max">2.4</param></command_interface>
+      <state_interface name="position"/><state_interface name="velocity"/>
+    </joint>
+    <joint name="LB_Joint_1">
+      <command_interface name="position"><param name="min">-1.2</param><param name="max">1.2</param></command_interface>
+      <state_interface name="position"/><state_interface name="velocity"/>
+    </joint>
+    <joint name="LB_Joint_2">
+      <command_interface name="position"><param name="min">-1.2</param><param name="max">1.2</param></command_interface>
+      <state_interface name="position"/><state_interface name="velocity"/>
+    </joint>
+    <joint name="LB_Joint_3">
+      <command_interface name="position"><param name="min">-0.6</param><param name="max">2.4</param></command_interface>
+      <state_interface name="position"/><state_interface name="velocity"/>
+    </joint>
+    <joint name="RB_Joint_1">
+      <command_interface name="position"><param name="min">-1.2</param><param name="max">1.2</param></command_interface>
+      <state_interface name="position"/><state_interface name="velocity"/>
+    </joint>
+    <joint name="RB_Joint_2">
+      <command_interface name="position"><param name="min">-1.2</param><param name="max">1.2</param></command_interface>
+      <state_interface name="position"/><state_interface name="velocity"/>
+    </joint>
+    <joint name="RB_Joint_3">
+      <command_interface name="position"><param name="min">-0.6</param><param name="max">2.4</param></command_interface>
+      <state_interface name="position"/><state_interface name="velocity"/>
+    </joint>
+  </ros2_control>
+
+  <!-- Gazebo ros2_control 插件 -->
+  <gazebo>
+    <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
+      <parameters>/home/a/dog/dog_ws/install/dog_control/share/dog_control/config/gazebo_controllers.yaml</parameters>
+    </plugin>
+  </gazebo>
+
 </robot>

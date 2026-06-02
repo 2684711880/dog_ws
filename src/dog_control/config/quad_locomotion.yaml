@@ -1,0 +1,54 @@
+/**:
+  ros__parameters:
+    # 指令源
+    input_source: "xbox"
+    cmd_timeout_s: 0.25
+
+    # 指令滤波
+    command_filter_alpha: 0.80
+    vx_slew_rate: 2.0
+    vy_slew_rate: 1.5
+    yaw_slew_rate: 5.0
+    height_slew_rate: 0.05
+
+    # 站立高度
+    height_min: 0.22
+    height_max: 0.32
+    height_default: 0.290
+    debug_locomotion: false
+    debug_locomotion_period_ms: 500
+
+    # 安全
+    safety_joint_margin: 0.01
+    safety_ik_fail_threshold: 10
+
+    # 共用
+    min_step_height: 0.050
+    yaw_step_gain: 1.0
+    yaw_step_gain_in_place: 1.2
+    in_place_turn_vx_threshold: 0.03
+    in_place_turn_vy_threshold: 0.02
+
+    # STEPPING
+    stepping_step_height: 0.025
+    stepping_frequency: 2.0
+    stepping_duty_factor: 0.65
+
+    # WALK
+    walk_step_height: 0.045
+    walk_frequency: 0.833
+    walk_duty_factor: 0.80
+    walk_max_step_length: 0.06
+    walk_swing_scale_front: 1.0
+    walk_swing_scale_rear: 1.0
+    walk_j1_lock_forward: false
+
+    # TROT
+    trot_step_height: 0.060
+    trot_frequency: 2.0
+    trot_duty_factor: 0.55
+    trot_max_step_length: 0.12 
+    trot_swing_scale_front: 1.0
+    trot_swing_scale_rear: 1.0
+    trot_yaw_lateral_gain: 1.0
+    trot_j1_lock_forward: false

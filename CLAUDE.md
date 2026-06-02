@@ -2,100 +2,115 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Workspace layout
+## Project Overview
 
-ROS 2 (ament) workspace for a 12-DoF quadruped (RS02 over 4 CAN buses). Standard colcon layout under `src/`:
+ROS 2 Humble workspace for a 12-DOF quadruped dog robot (ROBOCON 2026). Four legs × 3 joints (J1 hip, J2 thigh, J3 knee), RS02 motors over CAN bus. C++14, ament_cmake build system.
 
-- `dog_msgs` — `LocomotionCommand`, `MotorFeedback` interfaces
-- `dog_teleop` — `xbox_input_node`: `/joy` → `/locomotion_cmd`
-- `dog_control` — core C++ package; locomotion controller, hardware driver, calibration / debug executables, URDF, RViz config
-- `dog_bringup` — pure launch package (`locomotion_control.launch.py`, `display.launch.py`)
-- `dog_tool` — Python debug/visualization (`lf_foot_monitor`)
-- `dm_imu` — Python IMU driver
-
-Project documentation is in Chinese under `docs/` — `节点说明.md` is authoritative for node parameters and topic contracts; `机械结构说明.md` is authoritative for mechanical dimensions and zero-pose; `重构v2.md` is the active refactor proposal (not yet implemented).
-
-## Build / run / test
-
-Build & source from the workspace root:
+## Build Commands
 
 ```bash
-colcon build --symlink-install
+# Full workspace build
+cd /home/a/dog/dog_ws && colcon build --symlink-install
+
+# Single package
+colcon build --packages-select dog_control
+
+# Build with tests
+colcon build --cmake-args -DBUILD_TESTING=ON
+
+# Run all tests
+colcon test --ctest-args tests
+
+# Run a single test binary
+colcon test --ctest-args -R test_leg_kinematics
+# Or directly: ./build/dog_control/test_leg_kinematics
+
+# Source the workspace
 source install/setup.bash
 ```
 
-Build a single package: `colcon build --packages-select dog_control`. Force a clean rebuild of a package: `colcon build --packages-select dog_control --cmake-clean-cache`.
-
-Run tests (gtest under `dog_control/test/`):
+## Launch Modes
 
 ```bash
-colcon test --packages-select dog_control
-colcon test-result --verbose
-```
+# Real hardware (xbox or keyboard input)
+ros2 launch dog_bringup quad_locomotion.launch.py input_source:=xbox
+ros2 launch dog_bringup quad_locomotion.launch.py input_source:=keyboard
 
-Run a single gtest filter directly after build: `./build/dog_control/test_locomotion_core --gtest_filter=Name.*`.
+# Gazebo simulation (keyboard only, opens Gazebo + controllers)
+ros2 launch dog_bringup gazebo_sim.launch.py
 
-Bring up CAN before launching real hardware: `sudo scripts/can.sh` (configures `can0..can3` at 1 Mbps, sample-point 0.75). `scripts/clean_logs.sh` wipes `log/`.
-
-Standard launches:
-
-```bash
-# Xbox control + locomotion controller
-ros2 run joy joy_node
-ros2 launch dog_bringup locomotion_control.launch.py input_source:=xbox
-
-# Real hardware controller (after CAN is up)
+# Real motor controller node (separate terminal)
 ros2 run dog_control real_motor_controller
 
-# Visualization
-ros2 launch dog_bringup display.launch.py use_gui:=true
+# Zero calibration tool
+ros2 run dog_control zero_calibrator
 ```
-
-Standalone hardware tools (CAN-only, do **not** use ROS topics): `dog_control/zero_calibrator` (single-leg mechanical zero) and `dog_control/dji_3508_spin_test` (single motor spin test).
 
 ## Architecture
 
-Control pipeline (one direction, one node per stage):
+### Package Layout
+
+- **dog_control** — Core control library and nodes
+- **dog_bringup** — Launch files (hardware + simulation)
+- **dog_teleop** — Input nodes (Xbox gamepad, keyboard)
+- **dog_msgs** — Custom ROS message definitions (`LocomotionCommand`, `MotorFeedback`)
+- **dm_imu** — IMU driver (external dependency, not in this workspace)
+- **dog_tool** — Python diagnostic tools (`js_range_extractor`, `lf_foot_monitor`)
+
+### Control Pipeline (`quad` namespace)
+
+The core control loop lives in `src/dog_control/src/quad/` with headers in `include/quad/`:
 
 ```
-/joy → xbox_input_node → /locomotion_cmd → locomotion_core_node → /joint_states + /gait_params → real_motor_controller → 12× RS02 (CAN)
-                                                                                                  ↓
-                                                                                          /motor_feedback
+MotionCommand → CommandFilter → GaitScheduler → FootPlanner → LegKinematics(IK) → SafetyMonitor → JointCommand
 ```
 
-Both `locomotion_core_node` and `real_motor_controller` run **5 ms (200 Hz)** control loops.
+- **CommandFilter** — Slew-rate limiting, exponential smoothing, timeout detection
+- **GaitScheduler** — Phase tracking for 4 gait types: STAND, STEPPING, WALK, TROT
+- **FootPlanner** — Bezier-curve swing trajectories, stance hold, per-gait params
+- **LegKinematics** — 3-DOF IK/FK, workspace clamping, J1-to-body coordinate transforms
+- **SafetyMonitor** — Joint limit enforcement, IK failure counting, force-stand on fault
+- **LocomotionController** — Orchestrator that wires all modules together
 
-`locomotion_core_node` filters `LocomotionCommand` by its `input_source` parameter (default `xbox`); messages whose `source` field doesn't match are silently dropped. Cmd timeout (`cmd_timeout_s`, default 0.25 s) automatically returns to `STAND`.
+### Key Data Types (`include/quad/types.h`)
 
-`locomotion_core_node` is split into a thin ROS shell + three libs (see `dog_control/CMakeLists.txt`):
-- `locomotion_params` — declare/load all `rcl` parameters
-- `locomotion_runtime` — phase clock, command filter (lowpass + slew), gait transition blend
-- `locomotion_planner` — IK, foot trajectory, joint output
+- `Vec3` — 3D vector (X forward, Y left, Z up in body frame)
+- `MotionCommand` — Filtered velocity command (vx, vy, yaw_rate, body_height)
+- `GaitType` — Enum: STAND=0, STEPPING=1, WALK=2, TROT=3 (matches `dog_msgs` integers)
+- `ContactSchedule` — Per-leg phase and stance/swing state
+- `JointCommand` — Final 12-DOF position output
 
-Hardware library (`motor_hardware_lib`) backs `real_motor_controller`, `zero_calibrator`, and `dji_3508_spin_test`.
+### Leg Model (`include/motor_ros2/leg_model.h`)
 
-### Single source of truth: `motor_ros2/leg_model.h`
+Defines the physical robot model: joint names, sign conventions, limits, and flat-index mapping. The `kJointSigns` array handles left/right mirror differences — signs apply to both commands and feedback.
 
-`include/motor_ros2/leg_model.h` defines `LegId {LF,RF,LB,RB}`, `JointId {J1,J2,J3}`, `LegJoints<T>`, `QuadJoints<T>`, `flatten`/`unflatten`, joint names, signs, and limits. Do **not** introduce parallel enums, separate joint-name lists, or per-leg-id arrays elsewhere — use this header. The CAN-bus → leg mapping is `can0=LF, can1=RF, can2=RB, can3=LB`.
+Leg order: LF(0), RF(1), LB(2), RB(3). Joint order per leg: J1, J2, J3.
 
-### Topic contracts (do not break)
+### Node Executables
 
-- `/locomotion_cmd` (`dog_msgs/LocomotionCommand`): `source` must match `input_source`. `height` is **clearance offset**, not absolute z; convention is `axis7=+1` ⇒ body raised ⇒ `height` value decreases. `gait_mode` ∈ {`STAND=0, STEPPING=1, WALK=2, TROT=3}`.
-- `/gait_params` (`std_msgs/String`): plain gait name string (`STAND`/`STEPPING`/`WALK`/`TROT`). `real_motor_controller` switches PID gains on this — do not rename or restructure.
-- `/joint_states` (`sensor_msgs/JointState`): 12 entries, ordered per `lm::kLegOrder` × `J1..J3`. `Joint_3` carries an internal **2.0× gear ratio** transform — keep `joint3_cmd_min/max` in sync with the hardware mapping when changing IK output conventions.
+| Node | Purpose |
+|------|---------|
+| `quad_locomotion_node` | Main control node — runs the full pipeline, accepts input from teleop |
+| `sim_bridge_node` | Gazebo bridge — applies sign correction, forwards to `forward_position_controller` |
+| `real_motor_controller` | Hardware node — CAN bus motor control for physical robot (RS02) |
+| `zero_calibrator` | Single-leg zero-position calibration tool |
 
-### Hardware safety defaults
+### Simulation vs Real Hardware
 
-`real_motor_controller` has gait-adaptive PID (different `kp/kd` per gait — see `docs/节点说明.md` §2.4). Default firmware is configured to **only enable LB leg's 3 motors**; the other legs are commented out in source until hand-validated. Recommended on-robot bring-up order is single-leg → diagonal pair → all four.
+- **Simulation**: `gazebo_sim.launch.py` launches Gazebo + `ros2_control` + `sim_bridge_node` + `quad_locomotion_node`. The sim bridge applies `kJointSigns` correction before forwarding to Gazebo's `forward_position_controller`.
+- **Real hardware**: `quad_locomotion.launch.py` launches `quad_locomotion_node` + teleop. Motor control runs separately via `real_motor_controller` on CAN bus (RS02 电机).
 
-### Mechanical facts that affect tuning
+## Configuration
 
-- ~20 mm vertical backlash in the foot — keep swing height ≥ 40 mm so legs don't drag.
-- Knee (`Joint_3`) has 2:1 gear ratio and a 19° mechanical offset baked into the zero pose.
-- "Zero pose" = standing with all 12 motor positions = 0; control commands are offsets from this.
+All locomotion parameters are in `config/quad_locomotion.yaml`. Per-gait params (frequency, duty_factor, step_height, max_step_length) are namespaced under `walk_*`, `trot_*`, `stepping_*`. The `input_source` parameter selects xbox vs keyboard.
+
+## URDF
+
+`urdf/dog.urdf` — Robot description. Meshes in `meshes/`. 用于 Gazebo 仿真和 RViz 可视化。**注意：URDF 中的尺寸数据不准确，机械参数以 `docs/机械结构说明.md` 和 `include/quad/leg_kinematics.h` 中的 `LegConfig` 为准。**
 
 ## Conventions
 
-- Coordinates: right-handed, X forward, Y left, Z up. IK runs in hip-local frame.
-- Documentation is in Chinese; match existing tone if editing docs in `docs/`.
-- After modifying `dog_control` source files, both `locomotion_core_lib` and the executables that link it (`locomotion_core_node`, plus tests) need to be rebuilt — `colcon build --packages-select dog_control` handles this.
+- All code in the `quad` namespace uses body-frame coordinates: X forward, Y left, Z up
+- Joint commands are in "joint-cmd space" (not raw motor space) — sign conversion happens at the hardware/bridge boundary
+- The `lm` namespace alias (`namespace lm = motor_ros2::leg_model`) is used throughout
+- Gait phase offsets follow standard quadruped conventions: TROT diagonal (0, π, π, 0), WALK sequential (0, π/2, π, 3π/2)

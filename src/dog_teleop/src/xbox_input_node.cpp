@@ -26,7 +26,7 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "xbox_input_node started: axis1=vx axis0=vy axis7=height_offset(+1 raises body, via lower clearance) axis6=yaw(right:+) axis5<thr enables A/B/X/Y");
+      "xbox_input_node started: axis1=-vx axis0=-vy axis7=height_offset(+1 raises body, via lower clearance) axis6=yaw(right:+) axis5<thr enables A/B/X/Y");
   }
 
 private:
@@ -54,6 +54,11 @@ private:
     return msg->buttons[static_cast<size_t>(idx)];
   }
 
+  static double scaled_signed_axis(double axis, double positive_max, double negative_max)
+  {
+    return axis * ((axis >= 0.0) ? positive_max : negative_max);
+  }
+
   bool rising_edge(const sensor_msgs::msg::Joy::SharedPtr & msg, int idx) const
   {
     if (idx < 0) return false;
@@ -69,10 +74,12 @@ private:
     declare_parameter<double>("mode_gate_threshold", -0.5);
     declare_parameter<bool>("mode_gate_less_than", true);
 
-    declare_parameter<double>("vx_max_walk", 0.18);
-    declare_parameter<double>("vx_max_trot", 0.42);
+    declare_parameter<double>("vx_max_walk_forward", 0.18);
+    declare_parameter<double>("vx_max_walk_backward", 0.18);
+    declare_parameter<double>("vx_max_trot_forward", 0.42);
+    declare_parameter<double>("vx_max_trot_backward", 0.42);
     declare_parameter<double>("vy_max_walk", 0.03);
-    declare_parameter<double>("vy_max_trot", 0.05);
+    declare_parameter<double>("vy_max_trot", 0.10);
     declare_parameter<double>("yaw_rate_max", 0.35);
 
     declare_parameter<double>("height_min", 0.24);
@@ -84,8 +91,10 @@ private:
     mode_gate_threshold_ = get_parameter("mode_gate_threshold").as_double();
     mode_gate_less_than_ = get_parameter("mode_gate_less_than").as_bool();
 
-    vx_max_walk_ = get_parameter("vx_max_walk").as_double();
-    vx_max_trot_ = get_parameter("vx_max_trot").as_double();
+    vx_max_walk_forward_ = get_parameter("vx_max_walk_forward").as_double();
+    vx_max_walk_backward_ = get_parameter("vx_max_walk_backward").as_double();
+    vx_max_trot_forward_ = get_parameter("vx_max_trot_forward").as_double();
+    vx_max_trot_backward_ = get_parameter("vx_max_trot_backward").as_double();
     vy_max_walk_ = get_parameter("vy_max_walk").as_double();
     vy_max_trot_ = get_parameter("vy_max_trot").as_double();
     yaw_rate_max_ = get_parameter("yaw_rate_max").as_double();
@@ -102,8 +111,8 @@ private:
   {
     if (!msg) return;
 
-    const double axis_vx = -axis_with_deadband(axis_safe(msg, 1));
-    const double axis_vy = axis_with_deadband(axis_safe(msg, 0));
+    const double axis_vx = axis_with_deadband(axis_safe(msg, 1));
+    const double axis_vy = -axis_with_deadband(axis_safe(msg, 0));
     const double axis_height = axis_with_deadband(axis_safe(msg, 7));
     const double axis_yaw = axis_with_deadband(axis_safe(msg, 6));
     const double gate_axis = axis_safe(msg, 5);
@@ -128,10 +137,10 @@ private:
     double vy = 0.0;
     const double axis_vy_shaped = axis_vy * std::abs(axis_vy);
     if (mode_cmd_ == dog_msgs::msg::LocomotionCommand::GAIT_WALK) {
-      vx = axis_vx * vx_max_walk_;
+      vx = scaled_signed_axis(axis_vx, vx_max_walk_forward_, vx_max_walk_backward_);
       vy = axis_vy_shaped * vy_max_walk_;
     } else if (mode_cmd_ == dog_msgs::msg::LocomotionCommand::GAIT_TROT) {
-      vx = axis_vx * vx_max_trot_;
+      vx = scaled_signed_axis(axis_vx, vx_max_trot_forward_, vx_max_trot_backward_);
       vy = axis_vy_shaped * vy_max_trot_;
     }
 
@@ -161,10 +170,12 @@ private:
   double mode_gate_threshold_{-0.5};
   bool mode_gate_less_than_{true};
 
-  double vx_max_walk_{0.18};
-  double vx_max_trot_{0.42};
+  double vx_max_walk_forward_{0.18};
+  double vx_max_walk_backward_{0.18};
+  double vx_max_trot_forward_{0.42};
+  double vx_max_trot_backward_{0.42};
   double vy_max_walk_{0.03};
-  double vy_max_trot_{0.05};
+  double vy_max_trot_{0.10};
   double yaw_rate_max_{0.35};
 
   double height_min_{0.24};

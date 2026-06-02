@@ -1,0 +1,10 @@
+这套代码现在主要要修改control部分
+main函数一般不考虑修改
+数据流最终输出/joint_states
+然后在main里面处理。
+所以control只需要在内部处理最终发/joint_states
+注意到/joint_states为0时为站立状态
+暂时不考虑motor_feedback闭环，先开换跑起来。
+代码部分urdf不需要管，3508代码也不需要管，电机是RS02电机即最终把joint_ststes赋值到send_motion_command（）
+
+

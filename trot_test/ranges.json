@@ -1,0 +1,82 @@
+{
+  "metadata": {
+    "bag_path": "/home/a/dog/dog_ws/trot_test/trot_test_0.db3",
+    "topic": "/joint_states",
+    "msg_count": 3006,
+    "duration_sec": 15.03
+  },
+  "joints": {
+    "LF_Joint_1": {
+      "min": 0.0,
+      "max": 0.0,
+      "mean": 0.0,
+      "std": 0.0
+    },
+    "RF_Joint_1": {
+      "min": 0.0,
+      "max": 0.0,
+      "mean": 0.0,
+      "std": 0.0
+    },
+    "RB_Joint_1": {
+      "min": 0.0,
+      "max": 0.0,
+      "mean": 0.0,
+      "std": 0.0
+    },
+    "LB_Joint_1": {
+      "min": 0.0,
+      "max": 0.0,
+      "mean": 0.0,
+      "std": 0.0
+    },
+    "LF_Joint_2": {
+      "min": -0.137174,
+      "max": 0.0,
+      "mean": -0.007794,
+      "std": 0.026681
+    },
+    "RF_Joint_2": {
+      "min": -0.137173,
+      "max": 0.0,
+      "mean": -0.007784,
+      "std": 0.02679
+    },
+    "RB_Joint_2": {
+      "min": -0.144122,
+      "max": 0.0,
+      "mean": -0.008201,
+      "std": 0.028057
+    },
+    "LB_Joint_2": {
+      "min": -0.144121,
+      "max": 0.0,
+      "mean": -0.00819,
+      "std": 0.028172
+    },
+    "LF_Joint_3": {
+      "min": 0.0,
+      "max": 0.398679,
+      "mean": 0.022906,
+      "std": 0.078087
+    },
+    "RF_Joint_3": {
+      "min": 0.0,
+      "max": 0.398677,
+      "mean": 0.022877,
+      "std": 0.078406
+    },
+    "RB_Joint_3": {
+      "min": 0.0,
+      "max": 0.405425,
+      "mean": 0.023356,
+      "std": 0.079537
+    },
+    "LB_Joint_3": {
+      "min": 0.0,
+      "max": 0.405422,
+      "mean": 0.023326,
+      "std": 0.079862
+    }
+  }
+}

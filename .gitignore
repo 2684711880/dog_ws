@@ -1,0 +1,34 @@
+# ROS2 build artifacts
+build/
+install/
+log/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Compiled files
+*.o
+*.so
+*.a
+
+# ROS bag files
+*.bag
+*.db3
+
+# AI tool configs
+.claude/
+.codex/
+.agents/

@@ -48,31 +48,48 @@ ament_target_dependencies(motor_hardware_lib
   sensor_msgs
 )
 
-# 8. 统一步态控制核心（订阅 locomotion_cmd）
-add_library(locomotion_core_lib
-  src/locomotion_params.cpp
-  src/locomotion_runtime.cpp
-  src/locomotion_planner.cpp
+# 8. 新架构 quad 库
+add_library(quad_lib
+  src/quad/leg_kinematics.cpp
+  src/quad/gait_scheduler.cpp
+  src/quad/foot_planner.cpp
+  src/quad/command_filter.cpp
+  src/quad/safety_monitor.cpp
+  src/quad/locomotion_controller.cpp
 )
-ament_target_dependencies(locomotion_core_lib
-  rclcpp
-  sensor_msgs
-  std_msgs
+target_include_directories(quad_lib PUBLIC include)
+ament_target_dependencies(quad_lib
   dog_msgs
 )
 
-add_executable(locomotion_core_node
-  src/locomotion_core_node.cpp
+# 新架构节点
+add_executable(quad_locomotion_node
+  src/quad_locomotion_node.cpp
 )
-ament_target_dependencies(locomotion_core_node
+ament_target_dependencies(quad_locomotion_node
   rclcpp
   sensor_msgs
   std_msgs
   dog_msgs
 )
-target_link_libraries(locomotion_core_node
-  locomotion_core_lib
+target_link_libraries(quad_locomotion_node
+  quad_lib
 )
+
+# 8.1 仿真桥接节点
+add_executable(sim_bridge_node
+  src/sim_bridge_node.cpp
+)
+ament_target_dependencies(sim_bridge_node
+  rclcpp
+  sensor_msgs
+  std_msgs
+)
+target_link_libraries(sim_bridge_node
+  quad_lib
+)
+install(TARGETS sim_bridge_node
+  DESTINATION lib/${PROJECT_NAME})
 
 # 8.2 实物控制节点
 add_executable(real_motor_controller
@@ -113,8 +130,8 @@ target_link_libraries(dji_3508_spin_test
 
 # 10. 安装规则（合并）
 install(TARGETS
-  locomotion_core_node
-  locomotion_core_lib
+  quad_locomotion_node
+  quad_lib
   real_motor_controller
   zero_calibrator
   dji_3508_spin_test
@@ -140,6 +157,11 @@ ament_target_dependencies(manual_joint_pub rclcpp sensor_msgs)
 install(TARGETS manual_joint_pub
   DESTINATION lib/${PROJECT_NAME})
 
+add_executable(keyboard_input_node src/keyboard_input_node.cpp)
+ament_target_dependencies(keyboard_input_node rclcpp dog_msgs)
+install(TARGETS keyboard_input_node
+  DESTINATION lib/${PROJECT_NAME})
+
 add_executable(pose_hold_tool
   src/pose_hold_tool.cpp
 )
@@ -151,21 +173,109 @@ ament_target_dependencies(pose_hold_tool
 install(TARGETS pose_hold_tool
   DESTINATION lib/${PROJECT_NAME})
 
+add_executable(foot_target_tool
+  src/foot_target_tool.cpp
+)
+ament_target_dependencies(foot_target_tool
+  rclcpp
+  sensor_msgs
+)
+target_link_libraries(foot_target_tool
+  quad_lib
+)
+install(TARGETS foot_target_tool
+  DESTINATION lib/${PROJECT_NAME})
+
+add_executable(trot_foot_sim
+  src/trot_foot_sim.cpp
+)
+target_link_libraries(trot_foot_sim
+  quad_lib
+)
+install(TARGETS trot_foot_sim
+  DESTINATION lib/${PROJECT_NAME})
+
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
 
-  ament_add_gtest(test_locomotion_core
-    test/test_locomotion_core.cpp
+  ament_add_gtest(test_types
+    test/test_types.cpp
   )
-  if(TARGET test_locomotion_core)
-    ament_target_dependencies(test_locomotion_core
-      rclcpp
-      sensor_msgs
-      std_msgs
+  if(TARGET test_types)
+    ament_target_dependencies(test_types
       dog_msgs
     )
-    target_link_libraries(test_locomotion_core
-      locomotion_core_lib
+  endif()
+
+  ament_add_gtest(test_leg_kinematics
+    test/test_leg_kinematics.cpp
+  )
+  if(TARGET test_leg_kinematics)
+    ament_target_dependencies(test_leg_kinematics
+      dog_msgs
+    )
+    target_link_libraries(test_leg_kinematics
+      quad_lib
+    )
+  endif()
+
+  ament_add_gtest(test_gait_scheduler
+    test/test_gait_scheduler.cpp
+  )
+  if(TARGET test_gait_scheduler)
+    ament_target_dependencies(test_gait_scheduler
+      dog_msgs
+    )
+    target_link_libraries(test_gait_scheduler
+      quad_lib
+    )
+  endif()
+
+  ament_add_gtest(test_foot_planner
+    test/test_foot_planner.cpp
+  )
+  if(TARGET test_foot_planner)
+    ament_target_dependencies(test_foot_planner
+      dog_msgs
+    )
+    target_link_libraries(test_foot_planner
+      quad_lib
+    )
+  endif()
+
+  ament_add_gtest(test_command_filter
+    test/test_command_filter.cpp
+  )
+  if(TARGET test_command_filter)
+    ament_target_dependencies(test_command_filter
+      dog_msgs
+    )
+    target_link_libraries(test_command_filter
+      quad_lib
+    )
+  endif()
+
+  ament_add_gtest(test_safety_monitor
+    test/test_safety_monitor.cpp
+  )
+  if(TARGET test_safety_monitor)
+    ament_target_dependencies(test_safety_monitor
+      dog_msgs
+    )
+    target_link_libraries(test_safety_monitor
+      quad_lib
+    )
+  endif()
+
+  ament_add_gtest(test_locomotion_controller
+    test/test_locomotion_controller.cpp
+  )
+  if(TARGET test_locomotion_controller)
+    ament_target_dependencies(test_locomotion_controller
+      dog_msgs
+    )
+    target_link_libraries(test_locomotion_controller
+      quad_lib
     )
   endif()
 endif()

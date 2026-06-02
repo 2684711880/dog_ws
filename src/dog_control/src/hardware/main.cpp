@@ -158,12 +158,83 @@ public:
 private:
     enum class Mode { HOLD_TARGET, ACTIVE_FOLLOW };
 
-    struct GaitParams {
+    struct JointPd {
         float kp;
         float kd;
+    };
+
+    struct GaitParams {
+        std::array<JointPd, lm::kJointsPerLeg> front_pd;  // J1, J2, J3
+        std::array<JointPd, lm::kJointsPerLeg> rear_pd;   // J1, J2, J3
         float torque;
         float vel;
     };
+
+    static constexpr GaitParams kStandPd{{
+            JointPd{60.0f, 3.0f},
+            JointPd{60.0f, 3.0f},
+            JointPd{15.0f, 0.75f},
+        }, {
+            JointPd{60.0f, 3.0f},
+            JointPd{60.0f, 3.0f},
+            JointPd{15.0f, 0.75f},
+        },
+        0.0f, 0.0f};
+
+    static constexpr GaitParams kSteppingPd{{
+            JointPd{80.0f, 2.5f},
+            JointPd{80.0f, 2.5f},
+            JointPd{20.0f, 0.625f},
+        }, {
+            JointPd{80.0f, 2.5f},
+            JointPd{80.0f, 2.5f},
+            JointPd{20.0f, 0.625f},
+        },
+        0.0f, 0.0f};
+
+    static constexpr GaitParams kWalkPd{{
+            JointPd{80.0f, 2.5f},
+            JointPd{80.0f, 2.5f},
+            JointPd{20.0f, 0.625f},
+        }, {
+            JointPd{80.0f, 2.5f},
+            JointPd{80.0f, 2.5f},
+            JointPd{20.0f, 0.625f},
+        },
+        0.0f, 0.0f};
+
+    static constexpr GaitParams kTrotPd{{
+            JointPd{80.0f, 2.0f},
+            JointPd{80.0f, 2.0f},
+            JointPd{20.0f, 0.5f},
+        }, {
+            JointPd{80.0f, 2.0f},
+            JointPd{80.0f, 2.0f},
+            JointPd{80.0f, 2.0f},
+        },
+        0.0f, 0.0f};
+
+    static constexpr GaitParams kFastTrotPd{{
+            JointPd{60.0f, 1.5f},
+            JointPd{60.0f, 1.5f},
+            JointPd{15.0f, 0.375f},
+        }, {
+            JointPd{60.0f, 1.5f},
+            JointPd{60.0f, 1.5f},
+            JointPd{15.0f, 0.375f},
+        },
+        0.0f, 0.0f};
+
+    static bool is_front_leg(lm::LegId leg)
+    {
+        return leg == lm::LegId::LF || leg == lm::LegId::RF;
+    }
+
+    static JointPd select_joint_pd(const GaitParams &params, lm::LegId leg, lm::JointId joint)
+    {
+        const auto joint_idx = static_cast<std::size_t>(joint);
+        return is_front_leg(leg) ? params.front_pd[joint_idx] : params.rear_pd[joint_idx];
+    }
 
     void load_fixed_offset_config()
     {
@@ -218,15 +289,15 @@ private:
         const std::string gait_name = msg ? msg->data : std::string();
 
         if (gait_name == "STAND") {
-            current_gait_params_ = {60.0f, 3.0f, 0.0f, 0.0f};
+            current_gait_params_ = kStandPd;
         } else if (gait_name == "STEPPING") {
-            current_gait_params_ = {80.0f, 2.5f, 0.0f, 0.0f};
+            current_gait_params_ = kSteppingPd;
         } else if (gait_name == "WALK") {
-            current_gait_params_ = {80.0f, 2.5f, 0.0f, 0.0f};
+            current_gait_params_ = kWalkPd;
         } else if (gait_name == "TROT") {
-            current_gait_params_ = {80.0f, 2.0f, 0.0f, 0.0f};
+            current_gait_params_ = kTrotPd;
         } else if (gait_name == "FAST_TROT") {
-            current_gait_params_ = {60.0f, 1.5f, 0.0f, 0.0f};
+            current_gait_params_ = kFastTrotPd;
         }
     }
 
@@ -301,8 +372,7 @@ private:
             if (js_ok && mode != Mode::ACTIVE_FOLLOW)
             {
                 mode = Mode::ACTIVE_FOLLOW;
-                // RCLCPP_WARN(this->get_logger(), "joint_states OK -> ACTIVE_FOLLOW (kp=%.1f, kd=%.1f)",
-                //             current_gait_params_.kp, current_gait_params_.kd);
+                // RCLCPP_WARN(this->get_logger(), "joint_states OK -> ACTIVE_FOLLOW");
             }
             if (!js_ok && mode != Mode::HOLD_TARGET)
             {
@@ -350,8 +420,9 @@ private:
 
                     const float cmd_send = motor_ros2::controller_helpers::nearest_equivalent(cmd, last_pos_fb_[idx]);
 
-                    const float kp = current_gait_params_.kp;
-                    const float kd = current_gait_params_.kd;
+                    const JointPd pd = select_joint_pd(current_gait_params_, leg, joint);
+                    const float kp = pd.kp;
+                    const float kd = pd.kd;
                     const float torque = current_gait_params_.torque;
                     const float vel = current_gait_params_.vel;
 
@@ -398,7 +469,7 @@ private:
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr gait_params_sub_;
     rclcpp::Publisher<dog_msgs::msg::MotorFeedback>::SharedPtr motor_feedback_pub_;
 
-    GaitParams current_gait_params_{40.0f, 2.5f, 0.0f, 0.0f};
+    GaitParams current_gait_params_{kStandPd};
     std::mutex gait_params_mutex_;
 
     std::mutex mtx_;

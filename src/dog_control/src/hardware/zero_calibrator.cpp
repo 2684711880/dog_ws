@@ -39,12 +39,12 @@ const std::unordered_map<std::string, LegMotors> &leg_table() {
       {"RF", {{{"RF_Joint_1", "can1", 0x04},
                {"RF_Joint_2", "can1", 0x05},
                {"RF_Joint_3", "can1", 0x06}}}},
-      {"LB", {{{"LB_Joint_1", "can3", 0x0A},
-               {"LB_Joint_2", "can3", 0x0B},
-               {"LB_Joint_3", "can3", 0x0C}}}},
-      {"RB", {{{"RB_Joint_1", "can2", 0x07},
-               {"RB_Joint_2", "can2", 0x08},
-               {"RB_Joint_3", "can2", 0x09}}}},
+      {"LB", {{{"LB_Joint_1", "can0", 0x0A},
+               {"LB_Joint_2", "can0", 0x0B},
+               {"LB_Joint_3", "can0", 0x0C}}}},
+      {"RB", {{{"RB_Joint_1", "can1", 0x07},
+               {"RB_Joint_2", "can1", 0x08},
+               {"RB_Joint_3", "can1", 0x09}}}},
   };
   return kTable;
 }

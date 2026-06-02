@@ -21,6 +21,7 @@ setup(
     entry_points={
         "console_scripts": [
             "lf_foot_monitor = dog_tool.lf_foot_monitor:main",
+            "js_range_extractor = dog_tool.js_range_extractor:main",
         ],
     },
 )
